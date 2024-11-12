@@ -1196,7 +1196,7 @@ static void _destUnrollTransformUnit8x5(const float* srcBlock, float* dstStart, 
 
 template<size_t IterLoop>
 static void _destUnrollTransformUnit8x6(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
-
+    std::cout<<"wino A trans start"<<std::endl;
     Vec8 s0 = Vec8::load(srcBlock + 0 * srcStep);
     Vec8 s1 = Vec8::load(srcBlock + 1 * srcStep);
     Vec8 s2 = Vec8::load(srcBlock + 2 * srcStep);
@@ -1205,25 +1205,20 @@ static void _destUnrollTransformUnit8x6(const float* srcBlock, float* dstStart, 
     Vec8 s5 = Vec8::load(srcBlock + 5 * srcStep);
     Vec8 s6 = Vec8::load(srcBlock + 6 * srcStep);
     Vec8 s7 = Vec8::load(srcBlock + 7 * srcStep);
+    Vec8 s8 = Vec8::load(srcBlock + 8 * srcStep);
+    Vec8 s9 = Vec8::load(srcBlock + 9 * srcStep);
     for (int i = 0; i < IterLoop - 1; ++i) {
         auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
         auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
 
-        Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
-        mid0 = s1 + s2;
-        mid1 = s1 - s2;
-        mid2 = s3 + s4;
-        mid3 = s3 - s4;
-        mid4 = s5 + s6;
-        mid5 = s5 - s6;
-        auto m0 = s0 + mid0 + mid2 + mid4;
-        auto m1 = mid1 + mid3 * 2.f + mid5 * 3.f;
-        auto m2 = mid0 + mid2 * 4.f + mid4 * 9.f;
-        auto m3 = mid1 + mid3 * 8.f + mid5 * 27.f;
+        auto m0 = (s0 + s1*2.f - s2 - s3 + s4 + s5 - s6*2.f - s7)*0.166667 + s8 ;
+        auto m1 = (s0 + s1     + s2 - s3*2.f - s4*2.f + s5 + s6 + s7)*0.166667  ;
+        auto m2 = (s0 - s1     + s2*2.f - s3 + s4 - s5*2.f + s6 - s7)*0.166667  ;
+        auto m3 = (s0 - s1*2.f + s2 + s3 + s4 + s5 - s6*2.f + s7)*0.166667  ;
         s0 = Vec8::load(srcFloatPtr + 0 * srcStep);
-        auto m4 = mid0 + mid2 * 16.f + mid4 * 81.f;
+        auto m4 = (s0 - s1     - s2 + s3*2.f - s4*2.f + s5 + s6 - s7)*0.166667  ;
         s1 = Vec8::load(srcFloatPtr + 1 * srcStep);
-        auto m5 = mid1 + mid3 * 32.f + mid5 * 243.f + s7;
+        auto m5 = (s0 + s1     - s2*2.f + s3 + s4 - s5*2.f + s6 + s7)*0.166667 + s9  ;
         s2 = Vec8::load(srcFloatPtr + 2 * srcStep);
 
         Vec8::save(dstFloatPtr + 0 * dstStep, m0);
@@ -1241,22 +1236,12 @@ static void _destUnrollTransformUnit8x6(const float* srcBlock, float* dstStart, 
 
     auto dstFloatPtr = (float*)(dstStart + (IterLoop - 1) * dstRowStep);
 
-    Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
-    mid0 = s1 + s2;
-    mid1 = s1 - s2;
-    auto m0 = s0 + mid0;
-    mid2 = s3 + s4;
-    mid3 = s3 - s4;
-    m0 = m0 + mid2;
-    mid4 = s5 + s6;
-    mid5 = s5 - s6;
-    m0 = m0 + mid4;
-
-    auto m1 = mid1 + mid3 * 2.f + mid5 * 3.f;
-    auto m2 = mid0 + mid2 * 4.f + mid4 * 9.f;
-    auto m3 = mid1 + mid3 * 8.f + mid5 * 27.f;
-    auto m4 = mid0 + mid2 * 16.f + mid4 * 81.f;
-    auto m5 = mid1 + mid3 * 32.f + mid5 * 243.f + s7;
+    auto m0 = (s0 + s1*2.f - s2 - s3 + s4 + s5 - s6*2.f - s7)*0.166667 + s8 ;
+    auto m1 = (s0 + s1     + s2 - s3*2.f - s4*2.f + s5 + s6 + s7)*0.166667  ;
+    auto m2 = (s0 - s1     + s2*2.f - s3 + s4 - s5*2.f + s6 - s7)*0.166667  ;
+    auto m3 = (s0 - s1*2.f + s2 + s3 + s4 + s5 - s6*2.f + s7)*0.166667  ;
+    auto m4 = (s0 - s1     - s2 + s3*2.f - s4*2.f + s5 + s6 - s7)*0.166667  ;
+    auto m5 = (s0 + s1     - s2 + s3 + s4 - s5*2.f + s6 + s7)*0.166667 + s9 ;
 
     Vec8::save(dstFloatPtr + 0 * dstStep, m0);
     Vec8::save(dstFloatPtr + 1 * dstStep, m1);
@@ -1266,6 +1251,10 @@ static void _destUnrollTransformUnit8x6(const float* srcBlock, float* dstStart, 
     Vec8::save(dstFloatPtr + 5 * dstStep, m5);
 
 }
+
+
+
+
 
 template<size_t IterLoop>
 static void _destUnrollTransformUnit8x7(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
