@@ -10,7 +10,6 @@
 #include <string.h>
 #include "math/WingoradGenerater.hpp"
 #include "core/Macro.h"
-#include <iostream>
 
 namespace MNN {
 namespace Math {
@@ -215,44 +214,6 @@ WinogradGenerater::WinogradGenerater(std::vector<int> computeUnit, std::vector<i
             mB = B;
         }
     }
-
-    //SFC
-    mG.reset(Matrix::create(3, 10));
-    mG_Right.reset(Matrix::create(10, 3));
-
-    std::cout<<"mG shape is:";mG->printShape();
-    std::cout<<"mG_right shape is:";mG_Right->printShape();
-
-    float* mG_ptr = mG->host<float>();
-    float* mG_Right_ptr = mG_Right->host<float>();
-    std::cout << std::endl;
-    // 定义要复制的矩阵 WeightH
-    float WeightH[10][3] = {
-        { 1, 1, 1},
-        { 0, 1, 1},
-        {-1,-1, 0},
-        {-1, 0, 1},
-        {-1, 0, 1},
-        { 1,-1, 0},
-        { 0,-1, 1},
-        { 1,-1, 1},
-        { 1, 0, 0},
-        { 0, 0, 1}
-    };
-
-    // 将 WeightH 矩阵的值逐个赋值给 mG_ptr
-    for (int i = 0; i < 10; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            mG_ptr[i * 3 + j] = WeightH[i][j];
-        }
-    }
-    // 将 WeightH 的转置矩阵赋值给 mG_Right_Ptr
-    for (int i = 0; i < 10; ++i) {
-        for (int j = 0; j < 3; ++j) {
-        // 在转置矩阵中，mG_Right_Ptr[j * 10 + i] 对应 WeightH[i][j]
-            mG_Right_ptr[j * 10 + i] = WeightH[i][j];
-    }
-}
 }
 std::shared_ptr<Tensor> WinogradGenerater::allocTransformWeight(const Tensor* source, int unitCi, int unitCo, bool alloc) {
     int ci = source->channel();
@@ -260,13 +221,10 @@ std::shared_ptr<Tensor> WinogradGenerater::allocTransformWeight(const Tensor* so
     MNN_ASSERT(source->width() == source->height() && source->width() == mG->length(1));
     int ciC4 = UP_DIV(ci, unitCi);
     int coC4 = UP_DIV(co, unitCo);
-    std::cout<<"mB shape is :"<<mB->length(0)<<","<<mB->length(1)<<std::endl;
     if (alloc) {
-        //return std::shared_ptr<Tensor>(Tensor::create<float>({mB->length(0) * mB->length(1), coC4, ciC4, unitCi, unitCo}));
-        return std::shared_ptr<Tensor>(Tensor::create<float>({10*10, coC4, ciC4, unitCi, unitCo}));//BTdB的大小从8*8改为10*10    
+        return std::shared_ptr<Tensor>(Tensor::create<float>({mB->length(0) * mB->length(1), coC4, ciC4, unitCi, unitCo}));
     }
-    //return std::shared_ptr<Tensor>(Tensor::createDevice<float>({mB->length(0) * mB->length(1), coC4, ciC4, unitCi, unitCo}));
-    return std::shared_ptr<Tensor>(Tensor::createDevice<float>({10*10, coC4, ciC4, unitCi, unitCo}));
+    return std::shared_ptr<Tensor>(Tensor::createDevice<float>({mB->length(0) * mB->length(1), coC4, ciC4, unitCi, unitCo}));
 }
 
 void WinogradGenerater::transformWeight(const Tensor* weightDest, const Tensor* source, bool ciFirst) {
@@ -279,9 +237,9 @@ void WinogradGenerater::transformWeight(const Tensor* weightDest, const Tensor* 
     if (ci % unitCi != 0 || co % unitCo != 0) {
         ::memset(weightDest->host<float>(), 0, weightDest->size());
     }
-    std::shared_ptr<Tensor> M(Math::Matrix::create(mKernelX, 10));
+    std::shared_ptr<Tensor> M(Math::Matrix::create(mKernelX, alpha));
     std::shared_ptr<Tensor> K(Math::Matrix::createShape(mKernelX, mKernelY));
-    std::shared_ptr<Tensor> K_Transform(Math::Matrix::create(10, 10));
+    std::shared_ptr<Tensor> K_Transform(Math::Matrix::create(alpha, alpha));
     auto weightPtr      = source->host<float>();
     auto KTransformData = K_Transform->host<float>();
     int lCi = unitCo;
@@ -304,18 +262,22 @@ void WinogradGenerater::transformWeight(const Tensor* weightDest, const Tensor* 
             K->buffer().host = (uint8_t*)srcSz;
             // M = G * K
             Math::Matrix::multi(M.get(), mG.get(), K.get());
-            //MNN_PRINT("M=\n");
-            //MNN::Math::Matrix::print(M.get());
-            //MNN_PRINT("mG=\n");
-            //MNN::Math::Matrix::print(mG.get());
+            // MNN_PRINT("K=\n");
+            // MNN::Math::Matrix::print(K.get());
+            // MNN_PRINT("M=\n");
+            // MNN::Math::Matrix::print(M.get());
+            // while (1)
+            // {
+            // }
+            
+            // K_Transform = M*GT
             //MNN_PRINT("mG_Right=\n");
             //MNN::Math::Matrix::print(mG_Right.get());
-            // K_Transform = M*GT
             Math::Matrix::multi(K_Transform.get(), M.get(), mG_Right.get());
 
             auto dstSz = dstOz + szC4 * weightDest->stride(2) + my * lCi;
 
-            for (int i = 0; i < 10 * 10; ++i) {
+            for (int i = 0; i < alpha * alpha; ++i) {
                 *(dstSz + i * weightDest->stride(0)) = KTransformData[i];
             }
         }

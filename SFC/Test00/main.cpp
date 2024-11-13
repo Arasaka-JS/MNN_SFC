@@ -39,7 +39,8 @@ void printTensorInfo(MNN::Tensor* tensor) {
 
 int main()
 {
-    auto model ="/home/skw404/MNN_SFC/MNN/SFC/Test00/build/CNN_0909.mnn";
+    auto model ="../CNN_0909.mnn";
+    bool use_sfc = true;
     
     // create net and session
     auto mnnNet = std::shared_ptr<MNN::Interpreter>(MNN::Interpreter::createFromFile(model));

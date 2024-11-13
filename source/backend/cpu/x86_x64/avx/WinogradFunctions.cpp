@@ -688,10 +688,11 @@ static void _sourceUnrollTransformUnit8x8_sfc(const float* srcBlock, float* dstS
 
 static void _sourceUnrollTransformUnit8x8(const float* srcBlock, float* dstStart, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
 
-
+    //extern bool use_sfc;
+    //if(use_sfc){std::cout<<"hello"<<std::endl;}
     // for(int i =0;i<8;i++)
     // {
-    //     std::cout<<srcBlock[i]<<",";
+    //     std::cout<<srcBlock[i*srcStep]<<",";
     // }
 
     constexpr size_t srcUnit = 8; // srcUnit
@@ -719,9 +720,10 @@ static void _sourceUnrollTransformUnit8x8(const float* srcBlock, float* dstStart
         Vec8 m8 = buf0-buf6;
         Vec8 m9 = -buf1+buf7;
 
-
+        
         buf0 = Vec8::load(srcFloatPtr + 0 * srcStep);
         Vec8::save(dstFloatPtr + 0 * dstStep, m0);
+
         buf1 = Vec8::load(srcFloatPtr + 1 * srcStep);
         Vec8::save(dstFloatPtr + 1 * dstStep, m1);
         buf2 = Vec8::load(srcFloatPtr + 2 * srcStep);

@@ -1,3 +1,6 @@
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mfma")
+
+
 message("SFC Test00")
 add_definitions(-DMNN_PIPELINE_DEBUG)
 add_definitions(-DLOG_VERBOSE)
