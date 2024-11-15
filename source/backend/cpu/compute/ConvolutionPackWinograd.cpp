@@ -665,9 +665,8 @@ static void sourceTransformUnitPack24_wino(float* srcBlock, float* dstStart, siz
 
 
 
-template<size_t IterLoop>
-static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
-    std::cout<<"wino A trans start"<<std::endl;
+
+static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep,int T) {
     Vec8 s0 = Vec8::load(srcBlock + 0 * srcStep);
     Vec8 s1 = Vec8::load(srcBlock + 1 * srcStep);
     Vec8 s2 = Vec8::load(srcBlock + 2 * srcStep);
@@ -678,7 +677,7 @@ static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, 
     Vec8 s7 = Vec8::load(srcBlock + 7 * srcStep);
     Vec8 s8 = Vec8::load(srcBlock + 8 * srcStep);
     Vec8 s9 = Vec8::load(srcBlock + 9 * srcStep);
-    for (int i = 0; i < IterLoop - 1; ++i) {
+    for (int i = 0; i < T - 1; ++i) {
         auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
         auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
 
@@ -705,7 +704,7 @@ static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, 
         Vec8::save(dstFloatPtr + 5 * dstStep, m5);
     }
 
-    auto dstFloatPtr = (float*)(dstStart + (IterLoop - 1) * dstRowStep);
+    auto dstFloatPtr = (float*)(dstStart + (T - 1) * dstRowStep);
 
     auto m0 = (s0 + s1*2.f - s2 - s3 + s4 + s5 - s6*2.f - s7)*0.166667 + s8 ;
     auto m1 = (s0 + s1     + s2 - s3*2.f - s4*2.f + s5 + s6 + s7)*0.166667  ;
@@ -724,8 +723,14 @@ static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, 
 }
 
 
-template<size_t IterLoop>
-static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
+static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep,int T) {
+
+    // std::cout<<"src 0"<<std::endl;
+    // for(int i=0;i<8;i++)
+    // {
+    //     std::cout<<*(srcBlock+i*srcStep)<<" ";
+    // }
+    // std::cout<<std::endl;
 
     Vec8 s0 = Vec8::load(srcBlock + 0 * srcStep);
     Vec8 s1 = Vec8::load(srcBlock + 1 * srcStep);
@@ -735,7 +740,7 @@ static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart,
     Vec8 s5 = Vec8::load(srcBlock + 5 * srcStep);
     Vec8 s6 = Vec8::load(srcBlock + 6 * srcStep);
     Vec8 s7 = Vec8::load(srcBlock + 7 * srcStep);
-    for (int i = 0; i < IterLoop - 1; ++i) {
+    for (int i = 0; i < T - 1; ++i) {
         auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
         auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
 
@@ -767,9 +772,23 @@ static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart,
         Vec8::save(dstFloatPtr + 4 * dstStep, m4);
         s7 = Vec8::load(srcFloatPtr + 7 * srcStep);
         Vec8::save(dstFloatPtr + 5 * dstStep, m5);
+        
+        // std::cout<<"dst "<<i<<std::endl;
+        // for(int i=0;i<6;i++)
+        // {
+        //     std::cout<<*(dstFloatPtr+i*dstStep)<<" ";
+        // }
+        // std::cout<<std::endl;
+
+        // std::cout<<"src "<<i+1<<std::endl;
+        // for(int i_t=0;i_t<8;i_t++)
+        // {
+        //     std::cout<<*(srcFloatPtr+i_t*srcStep)<<" ";
+        // }
+        // std::cout<<std::endl;
     }
 
-    auto dstFloatPtr = (float*)(dstStart + (IterLoop - 1) * dstRowStep);
+    auto dstFloatPtr = (float*)(dstStart + (T - 1) * dstRowStep);
 
     Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
     mid0 = s1 + s2;
@@ -794,7 +813,13 @@ static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart,
     Vec8::save(dstFloatPtr + 3 * dstStep, m3);
     Vec8::save(dstFloatPtr + 4 * dstStep, m4);
     Vec8::save(dstFloatPtr + 5 * dstStep, m5);
-
+    
+    // std::cout<<"dst "<<5<<std::endl;
+    // for(int i=0;i<6;i++)
+    // {
+    //     std::cout<<*(dstFloatPtr+i*dstStep)<<" ";
+    // }
+    // std::cout<<std::endl;
 }
 
 
@@ -1120,7 +1145,6 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
 
         std::ofstream outfile_tempWeight_sfc("../tempWeight_sfc.txt"); // 指定文件名
 
-
         for(int i =0;i<10*10;i++)
         {
             outfile_tempWeight_sfc<<(tempWeight_sfc->host<float>())[i*32*32]<<",";
@@ -1286,43 +1310,62 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
         std::cout << "SFC_2 execution time: " << duration_sfc_2.count() << " microseconds" << std::endl;
         std::cout << "WINO_2 execution time: " << duration_wino_2.count() << " microseconds" << std::endl;
 
+        std::ofstream outfile_mTempBuffer_wino("../mTempBuffer_wino.txt"); // 指定文件名
+
+        for(int i =0;i<8*8;i++)
+        {
+            outfile_mTempBuffer_wino<<mTempBuffer_wino[i*oc_4*epack*pack]<<" ";
+            if(((i+1)%8)==0){outfile_mTempBuffer_wino<<std::endl;}
+        }
+
+
+
         //目标变换
         auto dstZStep = epack*dstunit*dstunit*pack;
-        auto srcZStep = ePack * pack;
+        auto srcZStep = epack * pack;
+        auto unitStep = epack * oc_4 * pack;
+
         float dst_mid_wino [srcunit*dstunit*oc_4*pack];
         float dst_wino     [oc_4*epack*dstunit*dstunit*pack];
-        for(int i =0;i<24;i++)
+        
+        for(int si =0;si<24;si++)
         {
-            auto dstStart = dst_wino + i*dstunit*dstunit*oc_4*pack;
+            auto srcXi = mTempBuffer_wino + pack * si;
+            auto dstStart = dst_wino + si*dstunit*dstunit*oc_4*pack;
             for(int z=0;z<oc_4;z++)
             {
 
+                auto srcZ     = srcXi + z * srcZStep;
                 auto dstZAddr = dstStart + z * dstZStep;
-                auto srcZ     = mTempBuffer_wino + z * srcZStep * bytes;
 
-                DestUnrollTransform[srcUnit]((const float*)srcZ, (float*)midBuffer0, nullptr, nullptr, unitStep, dstUnit * pack, srcUnit * unitStep, pack);
-                DestUnrollTransform[ey]((const float*)midBuffer0, (float*)dstZAddr,  nullptr, nullptr, pack, pack * ow, pack * dstUnit, pack);
-
+                destUnrollTransformUnit_wino((const float*)srcZ, (float*)dst_mid_wino, nullptr, nullptr, unitStep, dstunit * pack, srcunit * unitStep, pack,8);
+                destUnrollTransformUnit_wino((const float*)dst_mid_wino, (float*)dstZAddr,  nullptr, nullptr, pack, pack * epack * dstunit, pack * dstunit, pack,6);
+                return;
             }
-
         }
 
-        float dst_mid_sfc [srcunit*dstunit*oc_4*pack];
-        float dst_sfc     [epack*dstunit*dstunit*oc_4*pack];
-        for(int i =0;i<24;i++)
+        for(int i =0;i<oc_4*epack*dstunit*dstunit*pack;i++)
         {
-            for(int c=0;c<oc_4;c++)
+            std::cout<<dst_wino[i]<<std::endl;
+        }
+
+        float dst_mid_sfc [midunit*dstunit*oc_4*pack];
+        float dst_sfc     [oc_4*epack*dstunit*dstunit*pack];
+        for(int si =0;si<24;si++)
+        {
+            auto srcXi = mTempBuffer_wino + pack * si;
+            auto dstStart = dst_wino + si*dstunit*dstunit*oc_4*pack;
+            for(int z=0;z<oc_4;z++)
             {
-                auto dstZAddr = dstStart + z * dstZStep * bytes;
-                auto srcZ     = srcXi + z * srcZStep * bytes;
+                auto srcZ     = srcXi + z * srcZStep;
+                auto dstZAddr = dstStart + z * dstZStep;
 
-                DestUnrollTransform[srcUnit]((const float*)srcZ, (float*)midBuffer0, nullptr, nullptr, unitStep, dstUnit * pack, srcUnit * unitStep, pack);
-                DestUnrollTransform[ey]((const float*)midBuffer0, (float*)dstZAddr,  nullptr, nullptr, pack, pack * ow, pack * dstUnit, pack);
-
-            }
+                destUnrollTransformUnit_sfc((const float*)srcZ, (float*)dst_mid_sfc, nullptr, nullptr, unitStep, dstUnit * pack, srcUnit * unitStep, pack,10);
+                destUnrollTransformUnit_sfc((const float*)dst_mid_sfc, (float*)dstZAddr,  nullptr, nullptr, pack, pack * epack * dstunit, pack * dstUnit, pack,6);
 
             }
         }
+
 
 
 
@@ -1344,4 +1387,5 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
     };
     return NO_ERROR;
 }
+
 } // namespace MNN
