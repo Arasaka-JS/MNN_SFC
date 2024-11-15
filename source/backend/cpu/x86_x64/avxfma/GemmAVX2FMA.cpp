@@ -58,10 +58,10 @@ void _AVX_MNNPackedMatMulFMA(float* C, const float* A, const float* B, const siz
         _AVX_MNNGemmFloatUnitMainFMA_Fused(C, A, B, parameter, postParameters, bias);
     }
 
-    for(int i =0;i<100;i++)
-    {
-        std::cout<<C[i]<<",";
-    }
+    // for(int i =0;i<100;i++)
+    // {
+    //     std::cout<<C[i]<<",";
+    // }
 
     auto hC4          = UP_DIV(h, 4);
     auto hC8          = hC4 / 2;

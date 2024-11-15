@@ -663,6 +663,146 @@ static void sourceTransformUnitPack24_wino(float* srcBlock, float* dstStart, siz
     }
 }
 
+
+
+template<size_t IterLoop>
+static void destUnrollTransformUnit_sfc(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
+    std::cout<<"wino A trans start"<<std::endl;
+    Vec8 s0 = Vec8::load(srcBlock + 0 * srcStep);
+    Vec8 s1 = Vec8::load(srcBlock + 1 * srcStep);
+    Vec8 s2 = Vec8::load(srcBlock + 2 * srcStep);
+    Vec8 s3 = Vec8::load(srcBlock + 3 * srcStep);
+    Vec8 s4 = Vec8::load(srcBlock + 4 * srcStep);
+    Vec8 s5 = Vec8::load(srcBlock + 5 * srcStep);
+    Vec8 s6 = Vec8::load(srcBlock + 6 * srcStep);
+    Vec8 s7 = Vec8::load(srcBlock + 7 * srcStep);
+    Vec8 s8 = Vec8::load(srcBlock + 8 * srcStep);
+    Vec8 s9 = Vec8::load(srcBlock + 9 * srcStep);
+    for (int i = 0; i < IterLoop - 1; ++i) {
+        auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
+        auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
+
+        auto m0 = (s0 + s1*2.f - s2 - s3 + s4 + s5 - s6*2.f - s7)*0.166667 + s8 ;
+        auto m1 = (s0 + s1     + s2 - s3*2.f - s4*2.f + s5 + s6 + s7)*0.166667  ;
+        auto m2 = (s0 - s1     + s2*2.f - s3 + s4 - s5*2.f + s6 - s7)*0.166667  ;
+        auto m3 = (s0 - s1*2.f + s2 + s3 + s4 + s5 - s6*2.f + s7)*0.166667  ;
+        s0 = Vec8::load(srcFloatPtr + 0 * srcStep);
+        auto m4 = (s0 - s1     - s2 + s3*2.f - s4*2.f + s5 + s6 - s7)*0.166667  ;
+        s1 = Vec8::load(srcFloatPtr + 1 * srcStep);
+        auto m5 = (s0 + s1     - s2*2.f + s3 + s4 - s5*2.f + s6 + s7)*0.166667 + s9  ;
+        s2 = Vec8::load(srcFloatPtr + 2 * srcStep);
+
+        Vec8::save(dstFloatPtr + 0 * dstStep, m0);
+        s3 = Vec8::load(srcFloatPtr + 3 * srcStep);
+        Vec8::save(dstFloatPtr + 1 * dstStep, m1);
+        s4 = Vec8::load(srcFloatPtr + 4 * srcStep);
+        Vec8::save(dstFloatPtr + 2 * dstStep, m2);
+        s5 = Vec8::load(srcFloatPtr + 5 * srcStep);
+        Vec8::save(dstFloatPtr + 3 * dstStep, m3);
+        s6 = Vec8::load(srcFloatPtr + 6 * srcStep);
+        Vec8::save(dstFloatPtr + 4 * dstStep, m4);
+        s7 = Vec8::load(srcFloatPtr + 7 * srcStep);
+        Vec8::save(dstFloatPtr + 5 * dstStep, m5);
+    }
+
+    auto dstFloatPtr = (float*)(dstStart + (IterLoop - 1) * dstRowStep);
+
+    auto m0 = (s0 + s1*2.f - s2 - s3 + s4 + s5 - s6*2.f - s7)*0.166667 + s8 ;
+    auto m1 = (s0 + s1     + s2 - s3*2.f - s4*2.f + s5 + s6 + s7)*0.166667  ;
+    auto m2 = (s0 - s1     + s2*2.f - s3 + s4 - s5*2.f + s6 - s7)*0.166667  ;
+    auto m3 = (s0 - s1*2.f + s2 + s3 + s4 + s5 - s6*2.f + s7)*0.166667  ;
+    auto m4 = (s0 - s1     - s2 + s3*2.f - s4*2.f + s5 + s6 - s7)*0.166667  ;
+    auto m5 = (s0 + s1     - s2 + s3 + s4 - s5*2.f + s6 + s7)*0.166667 + s9 ;
+
+    Vec8::save(dstFloatPtr + 0 * dstStep, m0);
+    Vec8::save(dstFloatPtr + 1 * dstStep, m1);
+    Vec8::save(dstFloatPtr + 2 * dstStep, m2);
+    Vec8::save(dstFloatPtr + 3 * dstStep, m3);
+    Vec8::save(dstFloatPtr + 4 * dstStep, m4);
+    Vec8::save(dstFloatPtr + 5 * dstStep, m5);
+
+}
+
+
+template<size_t IterLoop>
+static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep) {
+
+    Vec8 s0 = Vec8::load(srcBlock + 0 * srcStep);
+    Vec8 s1 = Vec8::load(srcBlock + 1 * srcStep);
+    Vec8 s2 = Vec8::load(srcBlock + 2 * srcStep);
+    Vec8 s3 = Vec8::load(srcBlock + 3 * srcStep);
+    Vec8 s4 = Vec8::load(srcBlock + 4 * srcStep);
+    Vec8 s5 = Vec8::load(srcBlock + 5 * srcStep);
+    Vec8 s6 = Vec8::load(srcBlock + 6 * srcStep);
+    Vec8 s7 = Vec8::load(srcBlock + 7 * srcStep);
+    for (int i = 0; i < IterLoop - 1; ++i) {
+        auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
+        auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
+
+        Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
+        mid0 = s1 + s2;
+        mid1 = s1 - s2;
+        mid2 = s3 + s4;
+        mid3 = s3 - s4;
+        mid4 = s5 + s6;
+        mid5 = s5 - s6;
+        auto m0 = s0 + mid0 + mid2 + mid4;
+        auto m1 = mid1 + mid3 * 2.f + mid5 * 3.f;
+        auto m2 = mid0 + mid2 * 4.f + mid4 * 9.f;
+        auto m3 = mid1 + mid3 * 8.f + mid5 * 27.f;
+        s0 = Vec8::load(srcFloatPtr + 0 * srcStep);
+        auto m4 = mid0 + mid2 * 16.f + mid4 * 81.f;
+        s1 = Vec8::load(srcFloatPtr + 1 * srcStep);
+        auto m5 = mid1 + mid3 * 32.f + mid5 * 243.f + s7;
+        s2 = Vec8::load(srcFloatPtr + 2 * srcStep);
+
+        Vec8::save(dstFloatPtr + 0 * dstStep, m0);
+        s3 = Vec8::load(srcFloatPtr + 3 * srcStep);
+        Vec8::save(dstFloatPtr + 1 * dstStep, m1);
+        s4 = Vec8::load(srcFloatPtr + 4 * srcStep);
+        Vec8::save(dstFloatPtr + 2 * dstStep, m2);
+        s5 = Vec8::load(srcFloatPtr + 5 * srcStep);
+        Vec8::save(dstFloatPtr + 3 * dstStep, m3);
+        s6 = Vec8::load(srcFloatPtr + 6 * srcStep);
+        Vec8::save(dstFloatPtr + 4 * dstStep, m4);
+        s7 = Vec8::load(srcFloatPtr + 7 * srcStep);
+        Vec8::save(dstFloatPtr + 5 * dstStep, m5);
+    }
+
+    auto dstFloatPtr = (float*)(dstStart + (IterLoop - 1) * dstRowStep);
+
+    Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
+    mid0 = s1 + s2;
+    mid1 = s1 - s2;
+    auto m0 = s0 + mid0;
+    mid2 = s3 + s4;
+    mid3 = s3 - s4;
+    m0 = m0 + mid2;
+    mid4 = s5 + s6;
+    mid5 = s5 - s6;
+    m0 = m0 + mid4;
+
+    auto m1 = mid1 + mid3 * 2.f + mid5 * 3.f;
+    auto m2 = mid0 + mid2 * 4.f + mid4 * 9.f;
+    auto m3 = mid1 + mid3 * 8.f + mid5 * 27.f;
+    auto m4 = mid0 + mid2 * 16.f + mid4 * 81.f;
+    auto m5 = mid1 + mid3 * 32.f + mid5 * 243.f + s7;
+
+    Vec8::save(dstFloatPtr + 0 * dstStep, m0);
+    Vec8::save(dstFloatPtr + 1 * dstStep, m1);
+    Vec8::save(dstFloatPtr + 2 * dstStep, m2);
+    Vec8::save(dstFloatPtr + 3 * dstStep, m3);
+    Vec8::save(dstFloatPtr + 4 * dstStep, m4);
+    Vec8::save(dstFloatPtr + 5 * dstStep, m5);
+
+}
+
+
+
+
+
+
+
 //#define MNN_WINOGRAD_PRINT_REDUCE_RATE
 //#define MNN_WINO_TRANFORM_TEST_CLOSE
 namespace MNN {
@@ -1093,29 +1233,11 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
         parameters[0] = 0                   ;
         parameters[3] = ePack * pack * bytes;
 
-        for (int iNw = 0; iNw < midunit; ++iNw) //sfc
-        { // i_Nw
-            auto midTransformPtr = midBuffer_sfc + iNw * alphaXStride;
-            auto unitsGemmbuffer = mGemmMidBuffer_sfc;
-            for (int z = 0; z < ic_4; ++z) 
-            { // ic_4
-                sourceTransformUnitPack24_sfc((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
-                unitsGemmbuffer += ePack * pack;
-                midTransformPtr += midunit*srcunit*epack*pack;
-            }
-            // Previous tranform requires xC aligned with EPack, xC should be Epack;
-            for (int iNh = 0; iNh < srcUnit; ++iNh) 
-            { // i_Nh, gemm
-                auto unitsGemmbuffer = mGemmMidBuffer_sfc + iNh * ic_4 * pack * ePack;
-                auto _dstFloatPtr = (float*)(mTempBuffer_sfc + (iNh * srcUnit + iNw) * dc_4 * pack * ePack);
-                auto _weightFloatPtr = (const float*)(weight + (iNh * srcUnit + iNw) * weightStride);
-                core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
-            }
-        }
+        auto time_4 = std::chrono::high_resolution_clock::now();
 
         for (int iNw = 0; iNw < srcUnit; ++iNw) //wino
         { // i_Nw
-            auto midTransformPtr = midBuffer_wino + iNw * alphaXStride;
+            auto midTransformPtr = midBuffer_wino + iNw * srcUnit * ePack * pack;
             auto unitsGemmbuffer = mGemmMidBuffer_wino;
             for (int z = 0; z < ic_4; ++z) 
             { // ic_4
@@ -1127,12 +1249,82 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
             for (int iNh = 0; iNh < srcUnit; ++iNh) 
             { // i_Nh, gemm
                 auto unitsGemmbuffer = mGemmMidBuffer_wino + iNh * ic_4 * pack * ePack;
-                auto _dstFloatPtr = (float*)(_dstOrigin + (iNh * srcUnit + iNw) * dc_4 * pack * ePack);
-                auto _weightFloatPtr = (const float*)(weight + (iNh * srcUnit + iNw) * weightStride);
+                auto _dstFloatPtr = (float*)(mTempBuffer_wino + (iNh * srcunit + iNw) * dc_4 * pack * ePack);
+                auto _weightFloatPtr = (const float*)(tempWeight_wino->host<uint8_t>() + (iNh * srcunit + iNw) * 4096);
                 core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
             }
+        }
+
+        auto time_5 = std::chrono::high_resolution_clock::now();
+
+        for (int iNw = 0; iNw < midunit; ++iNw) //sfc
+        { // i_Nw
+            auto midTransformPtr = midBuffer_sfc + iNw * alphaXStride;
+            auto unitsGemmbuffer = mGemmMidBuffer_sfc;
+            for (int z = 0; z < ic_4; ++z) 
+            { // ic_4
+                sourceTransformUnitPack24_sfc((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
+                unitsGemmbuffer += ePack * pack;
+                midTransformPtr += midunit*srcunit*epack*pack;
+            }
+
+            // Previous tranform requires xC aligned with EPack, xC should be Epack;
+            for (int iNh = 0; iNh < midunit; ++iNh) 
+            { // i_Nh, gemm
+                auto unitsGemmbuffer = mGemmMidBuffer_sfc + iNh * ic_4 * pack * ePack;
+                auto _dstFloatPtr = (float*)(mTempBuffer_sfc + (iNh * midunit + iNw) * dc_4 * pack * ePack);
+                auto _weightFloatPtr = (const float*)(tempWeight_sfc->host<uint8_t>() + (iNh * midunit + iNw) * 4096);
+
+                core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
+            }
+        }
+
+        auto time_6 = std::chrono::high_resolution_clock::now();
+
+        auto duration_wino_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_5 - time_4);
+        auto duration_sfc_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_6 - time_5);
+        std::cout << "SFC_2 execution time: " << duration_sfc_2.count() << " microseconds" << std::endl;
+        std::cout << "WINO_2 execution time: " << duration_wino_2.count() << " microseconds" << std::endl;
 
         //目标变换
+        auto dstZStep = epack*dstunit*dstunit*pack;
+        auto srcZStep = ePack * pack;
+        float dst_mid_wino [srcunit*dstunit*oc_4*pack];
+        float dst_wino     [oc_4*epack*dstunit*dstunit*pack];
+        for(int i =0;i<24;i++)
+        {
+            auto dstStart = dst_wino + i*dstunit*dstunit*oc_4*pack;
+            for(int z=0;z<oc_4;z++)
+            {
+
+                auto dstZAddr = dstStart + z * dstZStep;
+                auto srcZ     = mTempBuffer_wino + z * srcZStep * bytes;
+
+                DestUnrollTransform[srcUnit]((const float*)srcZ, (float*)midBuffer0, nullptr, nullptr, unitStep, dstUnit * pack, srcUnit * unitStep, pack);
+                DestUnrollTransform[ey]((const float*)midBuffer0, (float*)dstZAddr,  nullptr, nullptr, pack, pack * ow, pack * dstUnit, pack);
+
+            }
+
+        }
+
+        float dst_mid_sfc [srcunit*dstunit*oc_4*pack];
+        float dst_sfc     [epack*dstunit*dstunit*oc_4*pack];
+        for(int i =0;i<24;i++)
+        {
+            for(int c=0;c<oc_4;c++)
+            {
+                auto dstZAddr = dstStart + z * dstZStep * bytes;
+                auto srcZ     = srcXi + z * srcZStep * bytes;
+
+                DestUnrollTransform[srcUnit]((const float*)srcZ, (float*)midBuffer0, nullptr, nullptr, unitStep, dstUnit * pack, srcUnit * unitStep, pack);
+                DestUnrollTransform[ey]((const float*)midBuffer0, (float*)dstZAddr,  nullptr, nullptr, pack, pack * ow, pack * dstUnit, pack);
+
+            }
+
+            }
+        }
+
+
 
     };
     std::vector<int> postDivides(threadNumber+1);
