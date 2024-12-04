@@ -305,27 +305,14 @@ static void sourceUnrollTransform_wino(const float* srcBlock, float* dstStart, s
         auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
         auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
 
-        Vec8 mid0, mid1, mid2;
-        mid0     = Vec8::fma(Vec8::fma(buf6, buf2, Vec8(36)), buf4, Vec8(-13));
-        mid1     = Vec8::fma(Vec8::fma(buf4, buf0, Vec8(36)), buf2, Vec8(-13));
-        Vec8 m0 = mid1 - mid0;
-
-        mid2     = Vec8::fma(Vec8::fma(buf5, buf1, Vec8(36)), buf3, Vec8(-13));
-        Vec8 m1 = mid0 + mid2;
-        Vec8 m2 = mid0 - mid2;
-        mid1     = Vec8::fma(Vec8::fma(buf7, buf3, Vec8(36)), buf5, Vec8(-13));
-        Vec8 m7 = mid1 - mid2;
-
-        mid0     = Vec8::fma(Vec8::fma(buf6, buf2, Vec8(9)), buf4, Vec8(-10));
-        mid1     = Vec8::fma(buf5, buf1, Vec8(18)) + Vec8::fma(buf5, buf3, Vec8(-20));
-        mid2     = Vec8::fma(buf5 * 3, buf1, Vec8(12));
-        Vec8 m3 = mid0 + mid1;
-        Vec8 m4 = mid0 - mid1;
-
-        mid0     = Vec8::fma(Vec8::fma(buf6, buf2, Vec8(4)), buf4, Vec8(-5));
-        mid1     = Vec8::fma(mid2, buf3, Vec8(-15));
-        Vec8 m5 = mid0 + mid1;
-        Vec8 m6 = mid0 - mid1;
+        Vec8 m0 = buf0 * 36.f               - buf2*49.f             + buf4*14.f            - buf6;
+        Vec8 m1 =               buf1 *36.f  + buf2*36.f - buf3*13.f - buf4*13.f + buf5     + buf6;
+        Vec8 m2 =              -buf1 *36.f  + buf2*36.f + buf3*13.f - buf4*13.f - buf5     + buf6;
+        Vec8 m3 =               buf1 *18.f  + buf2*9.f  - buf3*20.f - buf4*10.f + buf5*2.f + buf6;
+        Vec8 m4 =              -buf1 *18.f  + buf2*9.f  + buf3*20.f - buf4*10.f - buf5*2.f + buf6;
+        Vec8 m5 =               buf1 *12.f  + buf2*4.f  - buf3*15.f - buf4*5.f  + buf5*3.f + buf6;
+        Vec8 m6 =              -buf1 *12.f  + buf2*4.f  + buf3*15.f - buf4*5.f  - buf5*3.f + buf6;
+        Vec8 m7 =              -buf1 *36.f              + buf3*49.f             - buf5*14.f         +buf7;
 
         buf0 = Vec8::load(srcFloatPtr + 0 * srcStep);
         Vec8::save(dstFloatPtr + 0 * dstStep, m0);
@@ -353,6 +340,7 @@ static void sourceUnrollTransform_wino(const float* srcBlock, float* dstStart, s
     }
 
     auto dstFloatPtr = (float*)(dstStart + (srcUnit - 1) * dstRowStep);
+
     Vec8 mid0, mid1, mid2;
     mid0     = Vec8::fma(Vec8::fma(buf6, buf2, Vec8(36)), buf4, Vec8(-13));
     mid1     = Vec8::fma(Vec8::fma(buf4, buf0, Vec8(36)), buf2, Vec8(-13));
@@ -532,28 +520,6 @@ static void sourceTransformUnitPack24_wino(float* srcBlock, float* dstStart, siz
     // constexpr size_t packCUnit = 1;
     const size_t loadTransposeStride = packCUnit * ePack;
     float* srcPtr = srcBlock;
-
-
-    // //TRANSPOSE_24X8_SAVE() TEST
-    // std::cout<<"TRANSPOSE_24X8_SAVE() TEST"<<std::endl;
-    // float a[24*8];
-    // for(int i=0;i<24*8;i++)
-    // {a[i]=i;}
-    
-    // srcPtr = a ;
-    // for(int i=0;i<24*8;i++)
-    // {
-    //     std::cout<<*(srcPtr+i)<<",";
-    // }
-    // std::cout<<std::endl;
-    // TRANSPOSE_24X8_SAVE();
-    // for(int i=0;i<24*8;i++)
-    // {
-    //     std::cout<<*(srcPtr+i)<<",";
-    // }
-    // std::cout<<std::endl;
-    // return;
-
 
 
     for (int iNh = 0; iNh < Nh; ++iNh)
@@ -779,23 +745,15 @@ static void destUnrollTransformUnit_wino(const float* srcBlock, float* dstStart,
         auto srcFloatPtr = (const float*)(srcBlock + (i + 1) * srcRowStep);
         auto dstFloatPtr = (float*)(dstStart + i * dstRowStep);
 
-        Vec8 mid0, mid1, mid2, mid3, mid4, mid5;
-        mid0 = s1 + s2;
-        mid1 = s1 - s2;
-        mid2 = s3 + s4;
-        mid3 = s3 - s4;
-        mid4 = s5 + s6;
-        mid5 = s5 - s6;
-        auto m0 = s0 + mid0 + mid2 + mid4;
-        auto m1 = mid1 + mid3 * 2.f + mid5 * 3.f;
-        auto m2 = mid0 + mid2 * 4.f + mid4 * 9.f;
-        auto m3 = mid1 + mid3 * 8.f + mid5 * 27.f;
+        auto m0 = s0    + s1    + s2    + s3        + s4        + s5        + s6  ;
+        auto m1 =         s1    - s2    + s3*2.f    - s4*2.f    + s5*3.f    - s6 * 3.f;
+        auto m2 =         s1    + s2    + s3*4.f    + s4*4.f    + s5*9.f    + s6 * 9.f;
+        auto m3 =         s1    - s2    + s3*8.f    - s4*8.f    + s5*27.f   - s6 * 27.f;
+        auto m4 =         s1    + s2    + s3*16.f   + s4*16.f   + s5*81.f   - s6 * 81.f;
+        auto m5 =         s1    - s2    + s3*32.f   - s4*32.f   + s5*243.f  - s6 * 243.f    + s7 ;
         s0 = Vec8::load(srcFloatPtr + 0 * srcStep);
-        auto m4 = mid0 + mid2 * 16.f + mid4 * 81.f;
         s1 = Vec8::load(srcFloatPtr + 1 * srcStep);
-        auto m5 = mid1 + mid3 * 32.f + mid5 * 243.f + s7;
         s2 = Vec8::load(srcFloatPtr + 2 * srcStep);
-
         Vec8::save(dstFloatPtr + 0 * dstStep, m0);
         s3 = Vec8::load(srcFloatPtr + 3 * srcStep);
         Vec8::save(dstFloatPtr + 1 * dstStep, m1);
@@ -905,7 +863,7 @@ ConvolutionPackWinograd::ConvolutionPackWinograd(const Convolution2DCommon *conv
     MNN::Math::Matrix::print(wino_b.get());
     MNN_PRINT("G=\n");
     MNN::Math::Matrix::print(wino_g.get());
-
+    
     int ePack, hPack, lPack;
     core->MNNGetMatMulPackMode(&ePack, &lPack, &hPack);
 
@@ -1092,7 +1050,8 @@ WinogradConfig ConvolutionPackWinograd::bestWinogradUnit(const Convolution2DComm
     return wconfig;
 }
 
-ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs, const std::vector<Tensor *> &outputs) {
+ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs, const std::vector<Tensor *> &outputs) 
+{
     CPUConvolution::onResize(inputs, outputs);
     int threadNumber = ((CPUBackend*)(backend()))->threadNumber();
     mTempBuffer->setLength(0, threadNumber);
@@ -1196,224 +1155,249 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
             if(((i+1)%8)==0){outfile_tempWeight_wino<<std::endl;}
         }
     
-        //源数据第一次变换
-        float src_data[ic_4*epack*srcunit*srcunit*pack];//ic4*epack*srcunit^2*pack
-        for(int i=0;i<4*24*8*8*8;i++)
-        {
-            src_data[i] = 1 ;
-        }
-        
-        float midBuffer_wino[ic_4*srcunit*srcunit*epack*pack];
-        float midBuffer_sfc[ic_4*epack*midunit*srcunit*pack];
-        int sourceZtep = epack*srcunit*srcunit*pack;
-        int destSOffset = 0;
 
-        auto time_1 = std::chrono::high_resolution_clock::now();
-        for(int i=0;i<24;i++)
-        {
-            float* src_ptr = src_data + i*8*8*8;
-            auto midBuffer_wino_Offset = midBuffer_wino + destSOffset;
-            for(int z = 0;z<4;z++)
-            {
-                float* srcZ_ptr = src_ptr + z*sourceZtep;
-                auto midBuffer_wino_Z = midBuffer_wino_Offset + z*epack*srcunit*srcunit*pack;
-                //const float* srcBlock, float* dstStart, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep
-                sourceUnrollTransform_wino((const float*)src_ptr, (float*)midBuffer_wino_Z, srcUnit * pack, ePack * pack, pack, alphaXStride);
-            }
-            destSOffset += pack;
-        }
-        auto time_2 = std::chrono::high_resolution_clock::now();
-        destSOffset = 0;
-        for(int i=0;i<24;i++)
-        {
-            float* src_ptr = src_data + i*8*8*8;
-            auto midBuffer_sfc_Offset = midBuffer_sfc + destSOffset;
-            for(int z = 0;z<4;z++)
-            {
-                float* srcZ_ptr = src_ptr + z*sourceZtep;
-                auto midBuffer_sfc_Z  = midBuffer_sfc_Offset  + z*epack*midunit*srcunit*pack;
-                sourceUnrollTransform_sfc((const float*)src_ptr, (float*)midBuffer_sfc_Z, srcunit * pack, ePack * pack, pack, alphaXStride);
-                //const float* srcBlock, float* dstStart, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep
-            }
-            destSOffset += pack;
-        }
-        auto time_3 = std::chrono::high_resolution_clock::now();
+        int64_t wino_time_sum=0;
+        int64_t sfc_time_sum=0;
 
-        auto duration_wino = std::chrono::duration_cast<std::chrono::microseconds>(time_2 - time_1);
-        auto duration_sfc = std::chrono::duration_cast<std::chrono::microseconds>(time_3 - time_2);
-        std::cout << "SFC execution time: " << duration_sfc.count() << " microseconds" << std::endl;
-        std::cout << "WINO execution time: " << duration_wino.count() << " microseconds" << std::endl;
+        for(int compute_num = 0;compute_num<1000;compute_num++)
         {
-            // auto midTransformPtr_float = (float*)midBuffer_sfc;
-            // std::ofstream midBuffer_sfc_outfile("../midBuffer_sfc.txt"); // 指定文件名
-            // for(int c=0;c<4;c++)
-            // {
-            //     for(int i=0;i<10*8*24;i++)
-            //     {
-            //         for(int j=0;j<8;j++)
-            //         {
-            //             midBuffer_sfc_outfile<<midTransformPtr_float[i*8+j]<<",";
-            //         }
-            //         midBuffer_sfc_outfile<<std::endl;
-            //     }
+            std::cout<<"compute_num: "<<compute_num<<std::endl;
+            //源数据第一次变换
+            float src_data[ic_4*epack*srcunit*srcunit*pack];//ic4*epack*srcunit^2*pack
+            for(int i=0;i<4*24*8*8*8;i++)
+            {
+                src_data[i] = 1 ;
+            }
+            
+            float midBuffer_wino[ic_4*srcunit*srcunit*epack*pack];
+            float midBuffer_sfc[ic_4*epack*midunit*srcunit*pack];
+            int sourceZtep = epack*srcunit*srcunit*pack;
+            int destSOffset = 0;
+
+            auto time_1 = std::chrono::high_resolution_clock::now();
+            for(int i=0;i<24;i++)
+            {
+                float* src_ptr = src_data + i*8*8*8;
+                auto midBuffer_wino_Offset = midBuffer_wino + destSOffset;
+                for(int z = 0;z<4;z++)
+                {
+                    float* srcZ_ptr = src_ptr + z*sourceZtep;
+                    auto midBuffer_wino_Z = midBuffer_wino_Offset + z*epack*srcunit*srcunit*pack;
+                    //const float* srcBlock, float* dstStart, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep
+                    sourceUnrollTransform_wino((const float*)src_ptr, (float*)midBuffer_wino_Z, srcUnit * pack, ePack * pack, pack, alphaXStride);
+                }
+                destSOffset += pack;
+            }
+            auto time_2 = std::chrono::high_resolution_clock::now();
+            destSOffset = 0;
+            for(int i=0;i<24;i++)
+            {
+                float* src_ptr = src_data + i*8*8*8;
+                auto midBuffer_sfc_Offset = midBuffer_sfc + destSOffset;
+                for(int z = 0;z<4;z++)
+                {
+                    float* srcZ_ptr = src_ptr + z*sourceZtep;
+                    auto midBuffer_sfc_Z  = midBuffer_sfc_Offset  + z*epack*midunit*srcunit*pack;
+                    sourceUnrollTransform_sfc((const float*)src_ptr, (float*)midBuffer_sfc_Z, srcunit * pack, ePack * pack, pack, alphaXStride);
+                    //const float* srcBlock, float* dstStart, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep
+                }
+                destSOffset += pack;
+            }
+            auto time_3 = std::chrono::high_resolution_clock::now();
+
+            auto duration_wino = std::chrono::duration_cast<std::chrono::microseconds>(time_2 - time_1);
+            auto duration_sfc = std::chrono::duration_cast<std::chrono::microseconds>(time_3 - time_2);
+
+            //std::cout << "SFC execution time: " << duration_sfc.count() << " microseconds" << std::endl;
+            //std::cout << "WINO execution time: " << duration_wino.count() << " microseconds" << std::endl;
+            sfc_time_sum += duration_sfc.count();
+            wino_time_sum+= duration_wino.count();
+            
+            {
+                // auto midTransformPtr_float = (float*)midBuffer_sfc;
+                // std::ofstream midBuffer_sfc_outfile("../midBuffer_sfc.txt"); // 指定文件名
+                // for(int c=0;c<4;c++)
+                // {
+                //     for(int i=0;i<10*8*24;i++)
+                //     {
+                //         for(int j=0;j<8;j++)
+                //         {
+                //             midBuffer_sfc_outfile<<midTransformPtr_float[i*8+j]<<",";
+                //         }
+                //         midBuffer_sfc_outfile<<std::endl;
+                //     }
+                // }
+
+                // midTransformPtr_float = (float*)midBuffer_wino;
+                // std::ofstream midBuffer_wino_outfile("../midBuffer_wino.txt"); // 指定文件名
+                // for(int c=0;c<4;c++)
+                // {
+                //     for(int i=0;i<8*8*24;i++)
+                //     {
+                //         for(int j=0;j<8;j++)
+                //         {
+                //             midBuffer_wino_outfile<<midTransformPtr_float[i*8+j]<<",";
+                //         }
+                //         midBuffer_wino_outfile<<std::endl;
+                //     }
+                // }
+
+
+                // return;
+            }
+
+            //源数据第二次变换和与权重逐元素相乘
+            float mGemmMidBuffer_sfc  [midunit*ic_4*pack*epack];
+            float mGemmMidBuffer_wino [srcunit*ic_4*pack*epack];
+            
+            int oc_4 = 4;
+            float mTempBuffer_sfc    [midunit*midunit*oc_4*epack*pack];
+            float mTempBuffer_wino   [srcunit*srcunit*oc_4*epack*pack];
+
+            std::vector<size_t> parameters(6)   ;
+            parameters[1] = input->channel()    ;
+            parameters[2] = output->channel()   ;
+            parameters[4] = 0                   ;
+            parameters[5] = 0                   ;
+            parameters[0] = 0                   ;
+            parameters[3] = ePack * pack * bytes;
+
+            auto time_4 = std::chrono::high_resolution_clock::now();
+
+            for (int iNw = 0; iNw < srcUnit; ++iNw) //wino
+            { // i_Nw
+                auto midTransformPtr = midBuffer_wino + iNw * srcUnit * ePack * pack;
+                auto unitsGemmbuffer = mGemmMidBuffer_wino;
+                for (int z = 0; z < ic_4; ++z) 
+                { // ic_4
+                    sourceTransformUnitPack24_wino((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
+                    unitsGemmbuffer += ePack * pack;
+                    midTransformPtr += srcunit*srcunit*epack*pack;
+                }
+                // Previous tranform requires xC aligned with EPack, xC should be Epack;
+                for (int iNh = 0; iNh < srcUnit; ++iNh) 
+                { // i_Nh, gemm
+                    auto unitsGemmbuffer = mGemmMidBuffer_wino + iNh * ic_4 * pack * ePack;
+                    auto _dstFloatPtr = (float*)(mTempBuffer_wino + (iNh * srcunit + iNw) * dc_4 * pack * ePack);
+                    auto _weightFloatPtr = (const float*)(tempWeight_wino->host<uint8_t>() + (iNh * srcunit + iNw) * 4096);
+                    core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
+                }
+            }
+
+            auto time_5 = std::chrono::high_resolution_clock::now();
+
+            for (int iNw = 0; iNw < midunit; ++iNw) //sfc
+            { // i_Nw
+                auto midTransformPtr = midBuffer_sfc + iNw * alphaXStride;
+                auto unitsGemmbuffer = mGemmMidBuffer_sfc;
+                for (int z = 0; z < ic_4; ++z) 
+                { // ic_4
+                    sourceTransformUnitPack24_sfc((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
+                    unitsGemmbuffer += ePack * pack;
+                    midTransformPtr += midunit*srcunit*epack*pack;
+                }
+
+                // Previous tranform requires xC aligned with EPack, xC should be Epack;
+                for (int iNh = 0; iNh < midunit; ++iNh) 
+                { // i_Nh, gemm
+                    auto unitsGemmbuffer = mGemmMidBuffer_sfc + iNh * ic_4 * pack * ePack;
+                    auto _dstFloatPtr = (float*)(mTempBuffer_sfc + (iNh * midunit + iNw) * dc_4 * pack * ePack);
+                    auto _weightFloatPtr = (const float*)(tempWeight_sfc->host<uint8_t>() + (iNh * midunit + iNw) * 4096);
+
+                    core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
+                }
+            }
+
+            auto time_6 = std::chrono::high_resolution_clock::now();
+
+            auto duration_wino_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_5 - time_4);
+            auto duration_sfc_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_6 - time_5);
+            sfc_time_sum += duration_sfc_2.count();
+            wino_time_sum+= duration_wino_2.count();
+            
+            //std::cout << "SFC_2 execution time: " << duration_sfc_2.count() << " microseconds" << std::endl;
+            //std::cout << "WINO_2 execution time: " << duration_wino_2.count() << " microseconds" << std::endl;
+
+            std::ofstream outfile_mTempBuffer_wino("../mTempBuffer_wino.txt"); // 指定文件名
+
+            for(int i =0;i<8*8;i++)
+            {
+                outfile_mTempBuffer_wino<<mTempBuffer_wino[i*oc_4*epack*pack]<<" ";
+                if(((i+1)%8)==0){outfile_mTempBuffer_wino<<std::endl;}
+            }
+
+
+
+            //目标变换
+            auto dstZStep = epack*dstunit*dstunit*pack;
+            auto srcZStep = epack * pack;
+            auto unitStep = epack * oc_4 * pack;
+
+            float dst_mid_wino [dstunit*srcunit*pack];
+            float dst_wino     [oc_4*epack*dstunit*dstunit*pack];
+
+            float dst_mid_sfc [dstunit*midunit*pack];
+            float dst_sfc     [oc_4*epack*dstunit*dstunit*pack];
+            
+            auto time_7 = std::chrono::high_resolution_clock::now();
+
+            for(int si =0;si<24;si++)
+            {
+                auto srcXi = mTempBuffer_wino + pack * si;
+                auto dstStart = dst_wino + si*dstunit*dstunit*pack;
+                for(int z=0;z<oc_4;z++)
+                {
+
+                    auto srcZ     = srcXi + z * srcZStep;
+                    auto dstZAddr = dstStart + z * dstZStep;
+
+                    destUnrollTransformUnit_wino((const float*)srcZ, (float*)dst_mid_wino, nullptr, nullptr, unitStep, dstunit * pack, srcunit * unitStep, pack,8);
+                    destUnrollTransformUnit_wino((const float*)dst_mid_wino, (float*)dstZAddr,  nullptr, nullptr, pack, pack * dstunit, pack * dstunit, pack,6);
+                    //const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep,int T
+
+                }
+            }
+
+            auto time_8 = std::chrono::high_resolution_clock::now();
+
+
+            for(int si =0;si<24;si++)
+            {
+                auto srcXi = mTempBuffer_sfc + pack * si;
+                auto dstStart = dst_sfc + si*dstunit*dstunit*pack;
+                for(int z=0;z<oc_4;z++)
+                {
+                    auto srcZ     = srcXi + z * srcZStep;
+                    auto dstZAddr = dstStart + z * dstZStep;
+
+                    destUnrollTransformUnit_sfc((const float*)srcZ, (float*)dst_mid_sfc, nullptr, nullptr, unitStep, dstunit * pack, srcunit * unitStep, pack,10);
+                    destUnrollTransformUnit_sfc((const float*)dst_mid_sfc, (float*)dstZAddr,  nullptr, nullptr, pack, pack * dstunit, pack * dstUnit, pack,6);
+
+                }
+            }
+
+            auto time_9 = std::chrono::high_resolution_clock::now();
+
+            auto duration_wino_3 = std::chrono::duration_cast<std::chrono::microseconds>(time_8 - time_7);
+            auto duration_sfc_3 = std::chrono::duration_cast<std::chrono::microseconds>(time_9 - time_8);
+            sfc_time_sum += duration_sfc_3.count();
+            wino_time_sum+= duration_wino_3.count();
+
+            //std::cout << "SFC_3 execution time: " << duration_sfc_3.count() << " microseconds" << std::endl;
+            //std::cout << "WINO_3 execution time: " << duration_wino_3.count() << " microseconds" << std::endl;
+
+            // for(int i =0;i<oc_4*epack*dstunit*dstunit*pack;i++)
+            //
+            //     std::cout<<dst_sfc[i]<<" ";
             // }
 
-            // midTransformPtr_float = (float*)midBuffer_wino;
-            // std::ofstream midBuffer_wino_outfile("../midBuffer_wino.txt"); // 指定文件名
-            // for(int c=0;c<4;c++)
-            // {
-            //     for(int i=0;i<8*8*24;i++)
-            //     {
-            //         for(int j=0;j<8;j++)
-            //         {
-            //             midBuffer_wino_outfile<<midTransformPtr_float[i*8+j]<<",";
-            //         }
-            //         midBuffer_wino_outfile<<std::endl;
-            //     }
-            // }
+        }    
+        std::cout << "SFC  execution time: " << sfc_time_sum << " microseconds" << std::endl;
+        std::cout << "WINO execution time: " << wino_time_sum << " microseconds" << std::endl;
 
+        float speed_rate = float(wino_time_sum)/float(sfc_time_sum);
 
-            // return;
-        }
-
-        //源数据第二次变换和与权重逐元素相乘
-        float mGemmMidBuffer_sfc  [midunit*ic_4*pack*epack];
-        float mGemmMidBuffer_wino [srcunit*ic_4*pack*epack];
-        
-        int oc_4 = 4;
-        float mTempBuffer_sfc    [midunit*midunit*oc_4*epack*pack];
-        float mTempBuffer_wino   [srcunit*srcunit*oc_4*epack*pack];
-
-        std::vector<size_t> parameters(6)   ;
-        parameters[1] = input->channel()    ;
-        parameters[2] = output->channel()   ;
-        parameters[4] = 0                   ;
-        parameters[5] = 0                   ;
-        parameters[0] = 0                   ;
-        parameters[3] = ePack * pack * bytes;
-
-        auto time_4 = std::chrono::high_resolution_clock::now();
-
-        for (int iNw = 0; iNw < srcUnit; ++iNw) //wino
-        { // i_Nw
-            auto midTransformPtr = midBuffer_wino + iNw * srcUnit * ePack * pack;
-            auto unitsGemmbuffer = mGemmMidBuffer_wino;
-            for (int z = 0; z < ic_4; ++z) 
-            { // ic_4
-                sourceTransformUnitPack24_wino((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
-                unitsGemmbuffer += ePack * pack;
-                midTransformPtr += srcunit*srcunit*epack*pack;
-            }
-            // Previous tranform requires xC aligned with EPack, xC should be Epack;
-            for (int iNh = 0; iNh < srcUnit; ++iNh) 
-            { // i_Nh, gemm
-                auto unitsGemmbuffer = mGemmMidBuffer_wino + iNh * ic_4 * pack * ePack;
-                auto _dstFloatPtr = (float*)(mTempBuffer_wino + (iNh * srcunit + iNw) * dc_4 * pack * ePack);
-                auto _weightFloatPtr = (const float*)(tempWeight_wino->host<uint8_t>() + (iNh * srcunit + iNw) * 4096);
-                core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
-            }
-        }
-
-        auto time_5 = std::chrono::high_resolution_clock::now();
-
-        for (int iNw = 0; iNw < midunit; ++iNw) //sfc
-        { // i_Nw
-            auto midTransformPtr = midBuffer_sfc + iNw * alphaXStride;
-            auto unitsGemmbuffer = mGemmMidBuffer_sfc;
-            for (int z = 0; z < ic_4; ++z) 
-            { // ic_4
-                sourceTransformUnitPack24_sfc((float*)midTransformPtr, (float*)unitsGemmbuffer, ePack * pack * ic_4);
-                unitsGemmbuffer += ePack * pack;
-                midTransformPtr += midunit*srcunit*epack*pack;
-            }
-
-            // Previous tranform requires xC aligned with EPack, xC should be Epack;
-            for (int iNh = 0; iNh < midunit; ++iNh) 
-            { // i_Nh, gemm
-                auto unitsGemmbuffer = mGemmMidBuffer_sfc + iNh * ic_4 * pack * ePack;
-                auto _dstFloatPtr = (float*)(mTempBuffer_sfc + (iNh * midunit + iNw) * dc_4 * pack * ePack);
-                auto _weightFloatPtr = (const float*)(tempWeight_sfc->host<uint8_t>() + (iNh * midunit + iNw) * 4096);
-
-                core->MNNPackedMatMul(_dstFloatPtr, (float*)unitsGemmbuffer, _weightFloatPtr, parameters.data(), nullptr, nullptr, nullptr, nullptr);
-            }
-        }
-
-        auto time_6 = std::chrono::high_resolution_clock::now();
-
-        auto duration_wino_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_5 - time_4);
-        auto duration_sfc_2 = std::chrono::duration_cast<std::chrono::microseconds>(time_6 - time_5);
-        std::cout << "SFC_2 execution time: " << duration_sfc_2.count() << " microseconds" << std::endl;
-        std::cout << "WINO_2 execution time: " << duration_wino_2.count() << " microseconds" << std::endl;
-
-        std::ofstream outfile_mTempBuffer_wino("../mTempBuffer_wino.txt"); // 指定文件名
-
-        for(int i =0;i<8*8;i++)
-        {
-            outfile_mTempBuffer_wino<<mTempBuffer_wino[i*oc_4*epack*pack]<<" ";
-            if(((i+1)%8)==0){outfile_mTempBuffer_wino<<std::endl;}
-        }
-
-
-
-        //目标变换
-        auto dstZStep = epack*dstunit*dstunit*pack;
-        auto srcZStep = epack * pack;
-        auto unitStep = epack * oc_4 * pack;
-
-        float dst_mid_wino [dstunit*srcunit*pack];
-        float dst_wino     [oc_4*epack*dstunit*dstunit*pack];
-
-        float dst_mid_sfc [dstunit*midunit*pack];
-        float dst_sfc     [oc_4*epack*dstunit*dstunit*pack];
-        
-        auto time_7 = std::chrono::high_resolution_clock::now();
-
-        for(int si =0;si<24;si++)
-        {
-            auto srcXi = mTempBuffer_wino + pack * si;
-            auto dstStart = dst_wino + si*dstunit*dstunit*pack;
-            for(int z=0;z<oc_4;z++)
-            {
-
-                auto srcZ     = srcXi + z * srcZStep;
-                auto dstZAddr = dstStart + z * dstZStep;
-
-                destUnrollTransformUnit_wino((const float*)srcZ, (float*)dst_mid_wino, nullptr, nullptr, unitStep, dstunit * pack, srcunit * unitStep, pack,8);
-                destUnrollTransformUnit_wino((const float*)dst_mid_wino, (float*)dstZAddr,  nullptr, nullptr, pack, pack * dstunit, pack * dstunit, pack,6);
-                //const float* srcBlock, float* dstStart, const float* bias, const float* postParameters, size_t srcRowStep, size_t dstRowStep, size_t srcStep, size_t dstStep,int T
-
-            }
-        }
-
-        auto time_8 = std::chrono::high_resolution_clock::now();
-
-
-        for(int si =0;si<24;si++)
-        {
-            auto srcXi = mTempBuffer_sfc + pack * si;
-            auto dstStart = dst_sfc + si*dstunit*dstunit*pack;
-            for(int z=0;z<oc_4;z++)
-            {
-                auto srcZ     = srcXi + z * srcZStep;
-                auto dstZAddr = dstStart + z * dstZStep;
-
-                destUnrollTransformUnit_sfc((const float*)srcZ, (float*)dst_mid_sfc, nullptr, nullptr, unitStep, dstunit * pack, srcunit * unitStep, pack,10);
-                destUnrollTransformUnit_sfc((const float*)dst_mid_sfc, (float*)dstZAddr,  nullptr, nullptr, pack, pack * dstunit, pack * dstUnit, pack,6);
-
-            }
-        }
-
-        auto time_9 = std::chrono::high_resolution_clock::now();
-
-        auto duration_wino_3 = std::chrono::duration_cast<std::chrono::microseconds>(time_8 - time_7);
-        auto duration_sfc_3 = std::chrono::duration_cast<std::chrono::microseconds>(time_9 - time_8);
-        std::cout << "SFC_3 execution time: " << duration_sfc_3.count() << " microseconds" << std::endl;
-        std::cout << "WINO_3 execution time: " << duration_wino_3.count() << " microseconds" << std::endl;
-
-        // for(int i =0;i<oc_4*epack*dstunit*dstunit*pack;i++)
-        // {
-        //     std::cout<<dst_sfc[i]<<" ";
-        // }
+        std::cout<<speed_rate<<std::endl;
 
 
 
@@ -1423,7 +1407,8 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
     postDivides[0] = 0;
 
     mPostFunction.first = threadNumber;
-    mPostFunction.second = [=](int tId, uint8_t* outputOrigin) {
+    mPostFunction.second = [=](int tId, uint8_t* outputOrigin) 
+    {
         auto dstOrigin = outputOrigin;
         int tSta = postDivides[tId];
         int tFin = postDivides[tId+1];
@@ -1434,6 +1419,5 @@ ErrorCode ConvolutionPackWinograd::onResize(const std::vector<Tensor *> &inputs,
         }
     };
     return NO_ERROR;
-}
-
-} // namespace MNN
+    }
+}; // namespace MNN
